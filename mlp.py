@@ -63,9 +63,12 @@ class MLP(object):
         self.bprop['grad_b2'] = grad_b2
 
         # Gradient of loss wrt weights 2
+        # The penalization has to be added the same number of times as the number of examples!
+        reps = grad_oa.shape[-1]
         grad_w2 = np.matmul(grad_oa, np.transpose(self.fprop['hs']))
-        self.bprop['grad_w2'] = grad_w2 + \
-                                self.lambdas[2]*np.sign(self.params['w2']) + self.lambdas[3]*2*(self.params['w2'])
+        grad_w2_pen = reps*(self.lambdas[2]*np.sign(self.params['w2']) + self.lambdas[3]*2*(self.params['w2']))
+        self.bprop['grad_w2'] = grad_w2 + grad_w2_pen
+
 
         # Gradient of loss wrt hs
         grad_hs = np.matmul(np.transpose(self.params['w2']), grad_oa)
@@ -83,9 +86,10 @@ class MLP(object):
         self.bprop['grad_b1'] = grad_b1
 
         # Gradient of loss wrt weights 1
+        # The penalization has to be added the same number of times as the number of examples!
         grad_w1 = np.matmul(grad_ha, np.transpose(x))
-        self.bprop['grad_w1'] = grad_w1 + \
-                                self.lambdas[0]*np.sign(self.params['w1']) + self.lambdas[1]*2*(self.params['w1'])
+        grad_w1_pen = reps*(self.lambdas[0]*np.sign(self.params['w1']) + self.lambdas[1]*2*(self.params['w1']))
+        self.bprop['grad_w1'] = grad_w1 + grad_w1_pen
 
     def update_weights(self, eta):
         for key in self.params.keys():
@@ -117,7 +121,6 @@ class MLP(object):
 
     def predict(self, x):
         prediction = self.forward_pass(x)
-        print(prediction)
         prediction = np.argmax(prediction, axis=0)
         return prediction
 

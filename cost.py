@@ -1,14 +1,15 @@
 import numpy as np
 
+
 class Cost(object):
 
     def __init__(self, n_classes):
         self.n_classes = n_classes
 
-    def forward(self):
+    def forward(self, predictions, y, params, lambdas):
         raise NotImplementedError
 
-    def backward(self):
+    def backward(self, predictions, y):
         raise NotImplementedError
 
 
@@ -20,9 +21,9 @@ class LogCost(Cost):
         onehot[y, np.arange(n_predictions)] = 1
         cost = np.sum(np.multiply(predictions, onehot), axis=0)
         cost = -np.log(cost) + lambdas[0]*np.sum(np.sum(np.abs(params['w1']))) + \
-               lambdas[1]*np.sum(np.sum(np.multiply(params['w1'], params['w1']))) + \
+               lambdas[1]*np.sum(np.sum(np.square(params['w1']))) + \
                lambdas[2]*np.sum(np.sum(np.abs(params['w2']))) + \
-               lambdas[3]*np.sum(np.sum(np.multiply(params['w2'], params['w2'])))
+               lambdas[3]*np.sum(np.sum(np.square(params['w2'])))
         return cost
 
     def backward(self, predictions, y):
