@@ -107,65 +107,63 @@ def experiment_2():
 
 
 def experiment_5():
-    # Load data
-    circle = np.loadtxt(os.path.join('data', 'circle.txt'))
-    ellipse = np.loadtxt(os.path.join('data', 'ellipse.txt'))
     # constants
     save_dir = os.path.join('results', 'experiment5')
 
-    # Base case
-    lr = 0.05
-    lambdas = [0, 0, 0, 0]
-    hidden = 3
-    epochs = 15
-    batch_size = 20
-    # Circle data
+    # Load data
+    circle = np.loadtxt(os.path.join('data', 'circle.txt'))
     x = circle[:, :-1].T
     y = np.clip(circle[:, -1].T.reshape(1, -1), 0, 1).astype(int)
-    inputs = len(x)
-    outputs = len(np.unique(y))
-    mlp = MLP(inputs, hidden, outputs, lambdas)
-    mlp.fit(x, y, batch_size, epochs, lr)
-    name = os.path.join(save_dir, 'base_case_circle')
-    plot_decision_boundary(mlp, x, y, 'Decision surface on an MLP for circle data', name)
-    # Ellipse data
-    x = ellipse[:, :-1].T
-    y = np.clip(circle[:, -1].T.reshape(1, -1), 0, 1).astype(int)
-    inputs = len(x)
-    outputs = len(np.unique(y))
-    mlp = MLP(inputs, hidden, outputs, lambdas)
-    mlp.fit(x, y, batch_size, epochs, lr)
-    name = os.path.join(save_dir, 'base_case_ellipse')
-    plot_decision_boundary(mlp, x, y, 'Decision surface on an MLP for ellipse data', name)
 
     # Varying weight decay
-    lr = 0.01
-    lambdas = [[0.0, 0.0, 0.0, 0.0],
-               [0.3, 0.3, 0.3, 0.3],
-               [0.8, 0.0, 0.8, 0.0],
-               [0.0, 0.8, 0.0, 0.8]]
-    hidden = 50
-    epochs = 5
-    batch_size = 100
-    for i in lambdas:
-        # Circle data
-        x = circle[:, :-1].T
-        y = np.clip(circle[:, -1].T.reshape(1, -1), 0, 1).astype(int)
+    lr = 0.001
+    lambdas = [([0.0, 0.0, 0.0, 0.0], 'Decision surface on an MLP for circles with no regularization'),
+               ([0.002, 0.0002, 0.002, 0.002], 'Decision surface on an MLP for circles with low regularization (L1 & L2)'),
+               ([0.005, 0.005, 0.005, 0.005], 'Decision surface on an MLP for circles with high regularization (L1 & L2)'),
+               ([0.01, 0.0, 0.01, 0.0], 'Decision surface on an MLP for circles with low L1 regularization'),
+               ([0.015, 0.0, 0.015, 0.0], 'Decision surface on an MLP for circles with high L1 regularization'),
+               ([0.0, 0.015, 0.0, 0.015], 'Decision surface on an MLP for circles with low L2 regularization'),
+               ([0.0, 0.02, 0.0, 0.02], 'Decision surface on an MLP for circles with low L2 regularization')]
+    hidden = 200
+    epochs = 50
+    batch_size = 500
+    for i, (lambda_, title) in enumerate(lambdas):
         inputs = len(x)
         outputs = len(np.unique(y))
-        mlp = MLP(inputs, hidden, outputs, i)
+        mlp = MLP(inputs, hidden, outputs, lambda_)
         mlp.fit(x, y, batch_size, epochs, lr)
-        name = os.path.join(save_dir, 'lr', 'circle_lr_{}'.format(i)).replace(".", "")
-        plot_decision_boundary(mlp, x, y, 'Decision surface on an MLP for circle data with lr: {}'.format(i), name)
-        # # Ellipse data
-        # x = ellipse[:, :-1].T
-        # y = np.clip(circle[:, -1].T.reshape(1, -1), 0, 1).astype(int)
-        # inputs = len(x)
-        # outputs = len(np.unique(y))
-        # mlp = MLP(inputs, hidden, outputs, i)
-        # mlp.fit(x, y, batch_size, epochs, lr)
-        # name = os.path.join(save_dir, 'lr', 'ellipse_lr_{}'.format(i)).replace(".", "")
-        # plot_decision_boundary(mlp, x, y, 'Decision surface on an MLP for ellipse data with lr: {}'.format(i), name)
+        name = os.path.join(save_dir, 'lambda', 'lambda_{}'.format(i))
+        plot_decision_boundary(mlp, x, y, title, name)
+
+    # Varying number of hidden units
+    lr = 0.001
+    lambdas = [0.001, 0.0001, 0.001, 0.001]
+    hiddens = [1, 2, 5, 20, 50, 100, 200]
+    epochs = 50
+    batch_size = 500
+    for i, hidden in enumerate(hiddens):
+        inputs = len(x)
+        outputs = len(np.unique(y))
+        mlp = MLP(inputs, hidden, outputs, lambdas)
+        mlp.fit(x, y, batch_size, epochs, lr)
+        name = os.path.join(save_dir, 'hidden', 'hidden_{}'.format(i))
+        title = 'Decision surface on an MLP for circles with {} hidden unit(s)'.format(hidden)
+        plot_decision_boundary(mlp, x, y, title, name)
+
+    # Varying number of epochs
+    lr = 0.001
+    lambdas = [0.001, 0.0001, 0.001, 0.001]
+    hidden = 100
+    epochs = [1, 2, 3, 10, 20, 50, 100]
+    batch_size = 500
+    for i, epoch in enumerate(epochs):
+        inputs = len(x)
+        outputs = len(np.unique(y))
+        mlp = MLP(inputs, hidden, outputs, lambdas)
+        mlp.fit(x, y, batch_size, epoch, lr)
+        name = os.path.join(save_dir, 'epochs', 'epochs_{}'.format(i))
+        title = 'Decision surface on an MLP for circles with {} epoch(s)'.format(epoch)
+        plot_decision_boundary(mlp, x, y, title, name)
 
 
 def experiment_10():
@@ -175,6 +173,6 @@ def experiment_10():
 if __name__ == '__main__':
     # EXPERIMENTS
 
-    experiment_2()
+    experiment_5()
 
 
