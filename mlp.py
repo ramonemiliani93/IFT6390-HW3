@@ -3,6 +3,7 @@ from sklearn import datasets
 from helper import initialize_params
 from helper import initialize_activations
 from helper import initialize_variables
+from helper import initialize_gradient_results
 from activation import Relu
 from activation import Softmax
 from cost import LogCost
@@ -10,11 +11,12 @@ from cost import LogCost
 
 class MLP(object):
 
-    def __init__(self, n_inputs, n_hidden, n_outputs, lambdas):
+    def __init__(self, n_inputs, n_hidden, n_outputs, lambdas, matrix=True):
         self.n_inputs = n_inputs
         self.n_hidden = n_hidden
         self.n_outputs = n_outputs
         self.lambdas = lambdas
+        self.matrix = matrix
         self.params = initialize_params(n_inputs, n_hidden, n_outputs)
         self.activations = initialize_activations(Relu, Softmax)
         self.cost = LogCost(self.n_outputs)
@@ -48,7 +50,6 @@ class MLP(object):
         # Calculate cost
         cost = self.cost.forward(self.fprop['os'], y, self.params, self.lambdas)
         self.fprop['cost'] = cost
-        self.fprop['total_cost'] = np.sum(cost)
 
         return cost
 
@@ -91,33 +92,51 @@ class MLP(object):
         grad_w1_pen = reps*(self.lambdas[0]*np.sign(self.params['w1']) + self.lambdas[1]*2*(self.params['w1']))
         self.bprop['grad_w1'] = grad_w1 + grad_w1_pen
 
-    def update_weights(self, eta):
+    def calculate_gradient(self, x, y):
+        gradients = initialize_gradient_results(self.n_inputs, self.n_hidden, self.n_outputs)
+        if self.matrix:
+            self.forward_pass(x)
+            self.calculate_cost(y)
+            cost = self.fprop['cost']
+            self.backward_pass(x, y)
+            for key in gradients.keys():
+                gradients[key] = self.bprop[key]
+        else:
+            cost = []
+            for i in range(x.shape[-1]):
+                self.forward_pass(x[:, [i]])
+                self.calculate_cost(y[:, [i]])
+                cost.append(np.asscalar(self.fprop['cost']))
+                self.backward_pass(x[:, [i]], y[:, [i]])
+                for key in gradients.keys():
+                    gradients[key] += self.bprop[key]
+            cost = np.asarray(cost)
+        return cost, gradients
+
+    def update_weights(self, eta, gradients):
         for key in self.params.keys():
-            self.params[key] = self.params[key] - eta*self.bprop['grad_{}'.format(key)]
+            self.params[key] = self.params[key] - eta*gradients['grad_{}'.format(key)]
 
     def fit(self, x, y, K, epochs, eta):
         assert x.shape[-1] == y.shape[-1]
-        cost = []
+        epoch_cost = []
         n_batches = x.shape[-1]/K
         for j in range(epochs):
+            cost_batch = []
             for i in range(int(np.floor(n_batches))):
                 x_batch = x[:, i*K:(i+1)*K]
                 y_batch = y[:, i*K:(i+1)*K]
-                self.forward_pass(x_batch)
-                self.calculate_cost(y_batch)
-                cost.append(self.fprop['total_cost'])
-                self.backward_pass(x_batch, y_batch)
-                self.update_weights(eta)
+                cost, gradients = self.calculate_gradient(x_batch, y_batch)
+                cost_batch.append(np.sum(cost))
+                self.update_weights(eta, gradients)
             if not n_batches.is_integer():
                 x_batch = x[:, int(n_batches*K):]
                 y_batch = y[:, int(n_batches*K):]
-                self.forward_pass(x_batch)
-                self.calculate_cost(y_batch)
-                cost.append(self.fprop['total_cost'])
-                self.backward_pass(x_batch, y_batch)
-                self.update_weights(eta)
-            cost.append(self.fprop['total_cost'])
-        return cost
+                cost, gradients = self.calculate_gradient(x_batch, y_batch)
+                self.update_weights(eta, gradients)
+                cost_batch.append(np.sum(cost))
+            epoch_cost.append(np.sum(cost_batch))
+        return epoch_cost
 
     def predict(self, x):
         prediction = self.forward_pass(x)

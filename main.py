@@ -5,22 +5,19 @@ import matplotlib.pyplot as plt
 
 
 def gradient_check(parameter, mlp, perturbation, x, y):
-    mlp.forward_pass(x)
-    mlp.calculate_cost(y)
-    cost = mlp.fprop['cost']
-    mlp.backward_pass(x, y)
+    cost, gradient = mlp.calculate_gradient(x, y)
+    gradient = gradient['grad_{}'.format(parameter)]
     numerical_gradient = np.zeros((mlp.params[parameter].shape[0], mlp.params[parameter].shape[1], len(cost)))
     rows, columns = mlp.params[parameter].shape
     for i in range(rows):
         for j in range(columns):
             mlp.params[parameter][i, j] = mlp.params[parameter][i, j] + perturbation
-            mlp.forward_pass(x)
-            mlp.calculate_cost(y)
-            numerical_gradient[i, j, :] = mlp.fprop['cost']-cost
+            pert_cost, _ = mlp.calculate_gradient(x, y)
+            numerical_gradient[i, j, :] = pert_cost-cost
             mlp.params[parameter][i, j] = mlp.params[parameter][i, j] - perturbation
     numerical_gradient = numerical_gradient/perturbation
     numerical_gradient = np.sum(numerical_gradient, axis=2)
-    check = np.divide(numerical_gradient+perturbation*0.001, mlp.bprop['grad_{}'.format(parameter)]+perturbation*0.001)
+    check = np.divide(numerical_gradient+perturbation*0.001, gradient+perturbation*0.001)
     return numerical_gradient, check
 
 
@@ -52,7 +49,7 @@ def experiment_1():
     hidden = 3
     n = 1
     lambdas = [0.1, 0.1, 0.1, 0.1]
-    mlp = MLP(inputs, hidden, outputs, lambdas)
+    mlp = MLP(inputs, hidden, outputs, lambdas, matrix=False)
     x = np.random.rand(inputs, n)
     y = np.random.randint(0, outputs, (1, n))
     numerical_gradient_w2, check_w2 = gradient_check('w2', mlp, 10e-5, x, y)
@@ -78,11 +75,11 @@ def experiment_1():
 
 def experiment_2():
     inputs = 2
-    outputs = 3
-    hidden = 3
-    n = 2
-    lambdas = [0.19, 0.45, 0.12, 0.3]
-    mlp = MLP(inputs, hidden, outputs, lambdas)
+    outputs = 2
+    hidden = 8
+    n = 10
+    lambdas = [0, 0, 0, 0]
+    mlp = MLP(inputs, hidden, outputs, lambdas, matrix=False)
     x = np.random.rand(inputs, n)
     y = np.random.randint(0, outputs, (1, n))
     numerical_gradient_w2, check_w2 = gradient_check('w2', mlp, 10e-5, x, y)
@@ -104,6 +101,41 @@ def experiment_2():
         'check_b1': check_b1}
     with open(os.path.join('results', 'experiment2', 'experiment2.txt'), 'w') as file:
         file.write(str(experiment_2))
+
+
+def experiment_3():
+    # Included in the method calculate_gradient() of the class MLP
+    pass
+
+
+def experiment_4():
+    inputs = 2
+    outputs = 1
+    hidden = 2
+    n = 10
+    lambdas = [0.19, 0.45, 0.12, 0.3]
+    mlp = MLP(inputs, hidden, outputs, lambdas, matrix=False)
+    x = np.random.rand(inputs, n)
+    y = np.random.randint(0, outputs, (1, n))
+    numerical_gradient_w2, check_w2 = gradient_check('w2', mlp, 10e-5, x, y)
+    numerical_gradient_b2, check_b2 = gradient_check('b2', mlp, 10e-5, x, y)
+    numerical_gradient_w1, check_w1 = gradient_check('w1', mlp, 10e-5, x, y)
+    numerical_gradient_b1, check_b1 = gradient_check('b1', mlp, 10e-5, x, y)
+    experiment_4 = {
+        'numerical_gradient_w2': numerical_gradient_w2,
+        'grad_w2': mlp.bprop['grad_w2'],
+        'check_w2': check_w2,
+        'numerical_gradient_b2': numerical_gradient_b2,
+        'grad_b2': mlp.bprop['grad_b2'],
+        'check_b2': check_b2,
+        'numerical_gradient_w1': numerical_gradient_w1,
+        'grad_w1': mlp.bprop['grad_w1'],
+        'check_w1': check_w1,
+        'numerical_gradient_b1': numerical_gradient_b1,
+        'grad_b1': mlp.bprop['grad_b1'],
+        'check_b1': check_b1}
+    with open(os.path.join('results', 'experiment4', 'experiment4.txt'), 'w') as file:
+        file.write(str(experiment_4))
 
 
 def experiment_5():
@@ -166,6 +198,61 @@ def experiment_5():
         plot_decision_boundary(mlp, x, y, title, name)
 
 
+def experiment_7():
+
+    for n in [1, 10]:
+        inputs = 2
+        outputs = 1
+        hidden = 2
+        lambdas = [0.19, 0.45, 0.12, 0.3]
+        x = np.random.rand(inputs, n)
+        y = np.random.randint(0, outputs, (1, n))
+
+        # Loop form
+        mlp = MLP(inputs, hidden, outputs, lambdas, matrix=False)
+        numerical_gradient_w2, check_w2 = gradient_check('w2', mlp, 10e-5, x, y)
+        numerical_gradient_b2, check_b2 = gradient_check('b2', mlp, 10e-5, x, y)
+        numerical_gradient_w1, check_w1 = gradient_check('w1', mlp, 10e-5, x, y)
+        numerical_gradient_b1, check_b1 = gradient_check('b1', mlp, 10e-5, x, y)
+        experiment_7_loop = {
+            'numerical_gradient_w2': numerical_gradient_w2,
+            'grad_w2': mlp.bprop['grad_w2'],
+            'check_w2': check_w2,
+            'numerical_gradient_b2': numerical_gradient_b2,
+            'grad_b2': mlp.bprop['grad_b2'],
+            'check_b2': check_b2,
+            'numerical_gradient_w1': numerical_gradient_w1,
+            'grad_w1': mlp.bprop['grad_w1'],
+            'check_w1': check_w1,
+            'numerical_gradient_b1': numerical_gradient_b1,
+            'grad_b1': mlp.bprop['grad_b1'],
+            'check_b1': check_b1}
+        with open(os.path.join('results', 'experiment7', 'experiment7_loop_k{}.txt'.format(n)), 'w') as file:
+            file.write(str(experiment_7_loop))
+
+        # Matrix form
+        mlp = MLP(inputs, hidden, outputs, lambdas)
+        numerical_gradient_w2, check_w2 = gradient_check('w2', mlp, 10e-5, x, y)
+        numerical_gradient_b2, check_b2 = gradient_check('b2', mlp, 10e-5, x, y)
+        numerical_gradient_w1, check_w1 = gradient_check('w1', mlp, 10e-5, x, y)
+        numerical_gradient_b1, check_b1 = gradient_check('b1', mlp, 10e-5, x, y)
+        experiment_7_matrix = {
+            'numerical_gradient_w2': numerical_gradient_w2,
+            'grad_w2': mlp.bprop['grad_w2'],
+            'check_w2': check_w2,
+            'numerical_gradient_b2': numerical_gradient_b2,
+            'grad_b2': mlp.bprop['grad_b2'],
+            'check_b2': check_b2,
+            'numerical_gradient_w1': numerical_gradient_w1,
+            'grad_w1': mlp.bprop['grad_w1'],
+            'check_w1': check_w1,
+            'numerical_gradient_b1': numerical_gradient_b1,
+            'grad_b1': mlp.bprop['grad_b1'],
+            'check_b1': check_b1}
+        with open(os.path.join('results', 'experiment7', 'experiment7_loop_k{}.txt').format(n), 'w') as file:
+            file.write(str(experiment_7_matrix))
+
+
 def experiment_10():
     pass
 
@@ -173,6 +260,6 @@ def experiment_10():
 if __name__ == '__main__':
     # EXPERIMENTS
 
-    experiment_5()
+    experiment_2()
 
 

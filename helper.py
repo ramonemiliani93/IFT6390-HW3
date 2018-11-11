@@ -22,3 +22,12 @@ def initialize_variables(names, initialization=None):
     for i in names:
         dict_[i] = initialization
     return dict_
+
+
+def initialize_gradient_results(n_inputs, n_hidden, n_outputs):
+    w1 = np.zeros((n_hidden, n_inputs))
+    w2 = np.zeros((n_outputs, n_hidden))
+    b1 = np.zeros((n_hidden, 1))
+    b2 = np.zeros((n_outputs, 1))
+    dict_ = {'grad_w1': w1, 'grad_w2': w2, 'grad_b1': b1, 'grad_b2': b2}
+    return dict_
