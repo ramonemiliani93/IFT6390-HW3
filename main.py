@@ -25,16 +25,16 @@ def plot_decision_boundary(clf, x, y, title, save_name):
     fig, ax = plt.subplots()
     x_min, x_max = x[0, :].min() - 0.25, x[0, :].max() + 0.25
     y_min, y_max = x[1, :].min() - 0.25, x[1, :].max() + 0.25
-    xx, yy = np.meshgrid(np.arange(x_min, x_max, 0.1), np.arange(y_min, y_max, 0.1))
+    xx, yy = np.meshgrid(np.arange(x_min, x_max, 0.01), np.arange(y_min, y_max, 0.01))
     Z = clf.predict(np.transpose(np.c_[xx.ravel(), yy.ravel()]))
     Z = Z.reshape(xx.shape)
     plt.contourf(xx, yy, Z, alpha=0.4, cmap=plt.cm.bwr)
     unique_classes = np.unique(y)
-    colors = plt.cm.spring(np.linspace(0, 1, len(unique_classes)))
+    colors = plt.cm.bwr(np.linspace(0, 1, len(unique_classes)))
     for i, class_ in enumerate(unique_classes):
         _, mask = np.where(y == class_)
         ax.scatter(x[0, mask], x[1, mask], c=colors[i], label='Category: {}'.format(class_),
-                   s=3, edgecolors='black', linewidths=0.2)
+                   s=4, edgecolors='black', linewidths=0.1)
     ax.legend(loc='upper right', framealpha=1)
     ax.grid(True)
     plt.title(title)
