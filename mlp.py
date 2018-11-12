@@ -131,10 +131,10 @@ class MLP:
             losses['test'] = []
             errors['test'] = []
 
-        n_batches = x_train.shape[-1]/K
+        n_batches = np.floor(x_train.shape[-1]/K)
         for j in range(epochs):
             cost_batch = []
-            for i in range(int(np.floor(n_batches))):
+            for i in range(int(n_batches)):
                 x_batch = x_train[:, i*K:(i+1)*K]
                 y_batch = y_train[:, i*K:(i+1)*K]
                 cost, gradients = self.calculate_gradient(x_batch, y_batch)
