@@ -9,7 +9,7 @@ from activation import Softmax
 from cost import LogCost
 
 
-class MLP(object):
+class MLP:
 
     def __init__(self, n_inputs, n_hidden, n_outputs, lambdas, matrix=True):
         self.n_inputs = n_inputs
@@ -117,34 +117,95 @@ class MLP(object):
         for key in self.params.keys():
             self.params[key] = self.params[key] - eta*gradients['grad_{}'.format(key)]
 
-    def fit(self, x, y, K, epochs, eta):
-        assert x.shape[-1] == y.shape[-1]
-        epoch_cost = []
-        n_batches = x.shape[-1]/K
+    def fit(self, x_train, y_train, K, epochs, eta, x_val=None, y_val=None, x_test=None, y_test=None):
+        assert x_train.shape[-1] == y_train.shape[-1]
+        train_cost = []
+        val_cost = []
+        test_cost = []
+        train_error = []
+        val_error = []
+        test_error = []
+        n_batches = x_train.shape[-1]/K
         for j in range(epochs):
             cost_batch = []
             for i in range(int(np.floor(n_batches))):
-                x_batch = x[:, i*K:(i+1)*K]
-                y_batch = y[:, i*K:(i+1)*K]
+                x_batch = x_train[:, i*K:(i+1)*K]
+                y_batch = y_train[:, i*K:(i+1)*K]
                 cost, gradients = self.calculate_gradient(x_batch, y_batch)
                 cost_batch.append(np.sum(cost))
                 self.update_weights(eta, gradients)
             if not n_batches.is_integer():
-                x_batch = x[:, int(n_batches*K):]
-                y_batch = y[:, int(n_batches*K):]
+                x_batch = x_train[:, int(n_batches*K):]
+                y_batch = y_train[:, int(n_batches*K):]
                 cost, gradients = self.calculate_gradient(x_batch, y_batch)
                 self.update_weights(eta, gradients)
                 cost_batch.append(np.sum(cost))
-            epoch_cost.append(np.sum(cost_batch))
-        return epoch_cost
+            train_cost.append(np.sum(cost_batch)/x_train.shape[-1])
+
+            y_pred = self.predict(x_train)
+            train_error.append(self.classification_error(y_pred, y_train))
+
+            if x_val is not None and x_test is not None:
+                self.forward_pass(x_val)
+                self.calculate_cost(y_val)
+                cost_val = self.fprop['cost']
+                val_cost.append(np.sum(cost_val) / x_val.shape[-1])
+
+                self.forward_pass(x_test)
+                self.calculate_cost(y_test)
+                cost_test = self.fprop['cost']
+                test_cost.append(np.sum(cost_test)/x_test.shape[-1])
+
+                y_pred_val = self.predict(x_val)
+                val_error.append(self.classification_error(y_pred_val, y_val))
+                y_pred_test = self.predict(x_test)
+                test_error.append(self.classification_error(y_pred_test, y_test))
+
+        return train_cost, train_error, val_cost, val_error, test_cost, test_error
 
     def predict(self, x):
         prediction = self.forward_pass(x)
         prediction = np.argmax(prediction, axis=0)
         return prediction
 
+    def classification_error(self, y_pred, y):
+        y_pred = np.expand_dims(y_pred, axis=-1).T
+        correct = y_pred == y
+        error = 1 - (np.sum(correct)/y.shape[1])
+        return error
+
 
 if __name__ == '__main__':
+    import sys
+    import time
+
+    sys.path.append('../fashion-mnist/utils')
+    import mnist_reader
+
+    d = 784
+    K = 100
+    dh = 100
+    m = 10
+    lambdas = [0.01, 0.01, 0.1, 0.1]
+    mlp_m = MLP(d, dh, m, lambdas, matrix=True)
+    mlp_l = MLP(d, dh, m, lambdas, matrix=False)
+    X_train, y_train = mnist_reader.load_mnist('data/fashion', kind='train')
+    X_test, y_test = mnist_reader.load_mnist('data/fashion', kind='t10k')
+
+    # transpose to match dims to mlp expected format
+    X_train = X_train.T
+    y_train = np.expand_dims(y_train, axis=-1).T
+    X_test = X_test.T
+    y_test = np.expand_dims(y_test, axis=-1).T
+
+    X_val = X_test[:, 0:3000]
+    y_val = y_test[:, 0:3000]
+
+    X_test = X_test[:, 3000:]
+    y_test = y_test[:, 3000:]
+
+    stuff = mlp_m.fit(X_train, y_train, K, 50, 1e-6, X_val, y_val, X_test, y_test)
+
     iris = datasets.load_iris()
     x = np.transpose(iris.data)
     y = iris.target.reshape(1, -1)
