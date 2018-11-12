@@ -176,36 +176,6 @@ class MLP:
 
 
 if __name__ == '__main__':
-    import sys
-    import time
-
-    sys.path.append('../fashion-mnist/utils')
-    import mnist_reader
-
-    d = 784
-    K = 100
-    dh = 100
-    m = 10
-    lambdas = [0.01, 0.01, 0.1, 0.1]
-    mlp_m = MLP(d, dh, m, lambdas, matrix=True)
-    mlp_l = MLP(d, dh, m, lambdas, matrix=False)
-    X_train, y_train = mnist_reader.load_mnist('data/fashion', kind='train')
-    X_test, y_test = mnist_reader.load_mnist('data/fashion', kind='t10k')
-
-    # transpose to match dims to mlp expected format
-    X_train = X_train.T
-    y_train = np.expand_dims(y_train, axis=-1).T
-    X_test = X_test.T
-    y_test = np.expand_dims(y_test, axis=-1).T
-
-    X_val = X_test[:, 0:3000]
-    y_val = y_test[:, 0:3000]
-
-    X_test = X_test[:, 3000:]
-    y_test = y_test[:, 3000:]
-
-    stuff = mlp_m.fit(X_train, y_train, K, 50, 1e-6, X_val, y_val, X_test, y_test)
-
     iris = datasets.load_iris()
     x = np.transpose(iris.data)
     y = iris.target.reshape(1, -1)
