@@ -4,6 +4,7 @@ from helper import initialize_params
 from helper import initialize_activations
 from helper import initialize_variables
 from helper import initialize_gradient_results
+from helper import save_log
 from activation import Relu
 from activation import Softmax
 from cost import LogCost
@@ -160,6 +161,17 @@ class MLP:
                 val_error.append(self.classification_error(y_pred_val, y_val))
                 y_pred_test = self.predict(x_test)
                 test_error.append(self.classification_error(y_pred_test, y_test))
+
+                losses = {'train': train_cost, 'val': val_cost, 'test': test_cost}
+                errors = {'train': train_error, 'val': val_error, 'test': test_error}
+                print('-' * 80)
+                print('Epoch {}'.format(j))
+                print(losses['train'][-1])
+                print('train loss = {:.5f}, val loss = {:.5f}, test loss = {:.5f}'.
+                      format(losses['train'][-1], losses['val'][-1], losses['test'][-1]))
+                print('train error = {:.5f}, val error = {:.5f}, test error = {:.5f}'.
+                      format(errors['train'][-1], errors['val'][-1], errors['test'][-1]))
+                save_log('results/log.txt', losses, errors, self.n_hidden, eta, K)
 
         return train_cost, train_error, val_cost, val_error, test_cost, test_error
 
