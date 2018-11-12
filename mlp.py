@@ -12,7 +12,7 @@ from cost import LogCost
 
 class MLP:
 
-    def __init__(self, n_inputs, n_hidden, n_outputs, lambdas, matrix=True):
+    def __init__(self, n_inputs, n_hidden, n_outputs, lambdas, matrix=True, verbose=False):
         self.n_inputs = n_inputs
         self.n_hidden = n_hidden
         self.n_outputs = n_outputs
@@ -23,6 +23,7 @@ class MLP:
         self.cost = LogCost(self.n_outputs)
         self.fprop = initialize_variables(['ha', 'hs', 'oa', 'os', 'cost', 'total_cost'])
         self.bprop = initialize_variables(['grad_oa', 'grad_b2', 'grad_w2', 'grad_hs', 'grad_ha', 'grad_b1', 'grad_w1'])
+        self.verbose = verbose
 
     def forward_pass(self, x):
         # Hidden layer Wx+b
@@ -119,13 +120,17 @@ class MLP:
             self.params[key] = self.params[key] - eta*gradients['grad_{}'.format(key)]
 
     def fit(self, x_train, y_train, K, epochs, eta, x_val=None, y_val=None, x_test=None, y_test=None):
+
         assert x_train.shape[-1] == y_train.shape[-1]
-        train_cost = []
-        val_cost = []
-        test_cost = []
-        train_error = []
-        val_error = []
-        test_error = []
+        losses = {'train': []}
+        errors = {'train': []}
+        if x_val is not None:
+            losses['val'] = []
+            errors['val'] = []
+        if x_test is not None:
+            losses['test'] = []
+            errors['test'] = []
+
         n_batches = x_train.shape[-1]/K
         for j in range(epochs):
             cost_batch = []
@@ -141,39 +146,51 @@ class MLP:
                 cost, gradients = self.calculate_gradient(x_batch, y_batch)
                 self.update_weights(eta, gradients)
                 cost_batch.append(np.sum(cost))
-            train_cost.append(np.sum(cost_batch)/x_train.shape[-1])
+            losses['train'].append(np.sum(cost_batch)/x_train.shape[-1])
 
             y_pred = self.predict(x_train)
-            train_error.append(self.classification_error(y_pred, y_train))
+            errors['train'].append(self.classification_error(y_pred, y_train))
 
-            if x_val is not None and x_test is not None:
+            if x_val is not None:
                 self.forward_pass(x_val)
                 self.calculate_cost(y_val)
                 cost_val = self.fprop['cost']
-                val_cost.append(np.sum(cost_val) / x_val.shape[-1])
-
+                losses['val'].append(np.sum(cost_val) / x_val.shape[-1])
+                y_pred_val = self.predict(x_val)
+                errors['val'].append(self.classification_error(y_pred_val, y_val))
+            if x_test is not None:
                 self.forward_pass(x_test)
                 self.calculate_cost(y_test)
                 cost_test = self.fprop['cost']
-                test_cost.append(np.sum(cost_test)/x_test.shape[-1])
-
-                y_pred_val = self.predict(x_val)
-                val_error.append(self.classification_error(y_pred_val, y_val))
+                losses['test'].append(np.sum(cost_test) / x_test.shape[-1])
                 y_pred_test = self.predict(x_test)
-                test_error.append(self.classification_error(y_pred_test, y_test))
+                errors['test'].append(self.classification_error(y_pred_test, y_test))
 
-                losses = {'train': train_cost, 'val': val_cost, 'test': test_cost}
-                errors = {'train': train_error, 'val': val_error, 'test': test_error}
+            if self.verbose:
                 print('-' * 80)
                 print('Epoch {}'.format(j))
-                print(losses['train'][-1])
-                print('train loss = {:.5f}, val loss = {:.5f}, test loss = {:.5f}'.
-                      format(losses['train'][-1], losses['val'][-1], losses['test'][-1]))
-                print('train error = {:.5f}, val error = {:.5f}, test error = {:.5f}'.
-                      format(errors['train'][-1], errors['val'][-1], errors['test'][-1]))
-                save_log('results/log.txt', losses, errors, self.n_hidden, eta, K)
+                loss_message = 'train loss = {:.5f}'
+                error_message = 'train error = {:.5f}'
+                if x_val is not None and x_test is None:
+                    loss_message += ', val loss = {:.5f}'
+                    error_message += ', val error = {:.5f}'
+                    print(loss_message.
+                          format(losses['train'][-1], losses['val'][-1]))
+                    print(error_message.
+                          format(errors['train'][-1], errors['val'][-1]))
+                elif x_test is not None and x_test is not None:
+                    loss_message += ', test loss = {:.5f}'
+                    error_message += ', test error = {:.5f}'
+                    print(loss_message.
+                          format(losses['train'][-1], losses['val'][-1], losses['test'][-1]))
+                    print(error_message.
+                          format(errors['train'][-1], errors['val'][-1], errors['test'][-1]))
+                else:
+                    print(loss_message.format(losses['train'][-1]))
+                    print(error_message.format(errors['train'][-1]))
 
-        return train_cost, train_error, val_cost, val_error, test_cost, test_error
+        save_log('results/log.txt', losses, errors, self.n_hidden, eta, K)
+        return losses, errors
 
     def predict(self, x):
         prediction = self.forward_pass(x)
