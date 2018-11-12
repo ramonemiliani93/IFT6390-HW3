@@ -143,7 +143,7 @@ def experiment_5():
     save_dir = os.path.join('results', 'experiment5')
 
     # Load data
-    circle = np.loadtxt(os.path.join('data', 'circle.txt'))
+    circle = np.loadtxt(os.path.join('data', 'circles.txt'))
     x = circle[:, :-1].T
     y = np.clip(circle[:, -1].T.reshape(1, -1), 0, 1).astype(int)
 
@@ -260,6 +260,6 @@ def experiment_10():
 if __name__ == '__main__':
     # EXPERIMENTS
 
-    experiment_2()
+    experiment_5()
 
 
